@@ -98,6 +98,8 @@ ucisc = (function (){
         this._except_list.push(...el);
       }
       _except(c){
+        if( this._op.indexOf(c) != -1 )
+          return true;
         if( this._except_list.indexOf(c) != -1)
           return true;
         return false;
