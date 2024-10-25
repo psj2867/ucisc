@@ -1,6 +1,4 @@
-ucisc = (function (){
-    const isIterable = o => o != null && typeof o[Symbol.iterator] === 'function'
-
+;(function (w){
     function codeRange(start,stop) {
       var result=[];
       for (var idx=start.charCodeAt(0),end=stop.charCodeAt(0); idx <=end; ++idx){
@@ -18,55 +16,51 @@ ucisc = (function (){
     };
 
 
-    class RECOMMENDER{
-      rl = [];
-      constructor(u, rl){
-        this.u = u;
-        if(isIterable(rl)){
-          this.rl.push(...rl);
-          
-        }
+    class UciscRecommender{
+      recommendList = [];
+      constructor(ops){
+        this.ops = ops;
       }
       reset(){
-        this.rl = [];
+        this.recommendList = [];
       }
       sort(){
-        this.rl.sort();
+        this.recommendList.sort();
       }
       addRecommendList(rl){
-        this.rl.push(...rl);
+        this.recommendList.push(...rl);
         
       }
       addRecommendRange(a,b){
-        this.rl.push(...codeRange(a,b));
+        this.recommendList.push(...codeRange(a,b));
         
       }
       addRecommendRangeN(a,b){
-        this.rl.push(...codeRangeN(a,b));
+        this.recommendList.push(...codeRangeN(a,b));
         
       }
-      _match(r, c){
-        return r.charCodeAt(0) % this.u._opL() == this.u._op.indexOf(c);
+      _match(c, r){
+        return ( r.charCodeAt(0) % this.ops.length ) == this.ops.indexOf(c);
       }
       recommend(c, n, s=0){
         var result = [];
         var count = 0;
-        for (const r of this.rl) {    
-          if( this._match(r,c) ){
+        for (const r of this.recommendList) {    
+          if( this._match(c, r) ){
             count++;
             if( s < count)
-              result.push(r);
-          }      
-          if(result.length > n-1){
-            return result;
-          }
+                result.push(r);
+            }      
+            if(result.length > n-1){
+                return result;
+            }
         }
         return result;
       }
     }
 
 
-    class UCISC{
+    class UciscDecoder{
       _op = [];
       _except_list = [];
 
@@ -119,9 +113,9 @@ ucisc = (function (){
 
     }
 
-
-    return {
-        UCISC ,
-        RECOMMENDER
-    };
-  }())
+    w.ucisc = {
+        UciscDecoder ,
+        UciscRecommender
+    }
+    return ;
+}(window));
