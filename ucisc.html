@@ -1,0 +1,301 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+    
+    <script src="https://cdn.jsdelivr.net/gh/psj2867/ucisc@main/ucisc.js"></script>
+    
+
+    <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
+
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/resize@3.x.x/dist/cdn.min.js"></script>
+    <!-- alpine -->
+    <script defer src="https://unpkg.com/alpinejs@3.10.5/dist/cdn.min.js" defer></script>
+
+
+</head>
+<body>
+    <div class="container mt-3">        
+        <div class="container mb-3">
+            <h3>UCSIC DEMO</h3>
+        </div>
+        
+        <div x-data="{ currentTab: '1' }" class="container tabContainer" >  
+            <ul class="nav nav-tabs">
+                <li class="nav-item">
+                <a class="nav-link" data-index="1" href="#" @click="currentTab = $el.dataset.index" :class="{active : currentTab == $el.dataset.index}">encoder</a>
+                </li>
+                <li class="nav-item">
+                <a class="nav-link" data-index="2" href="#" @click="currentTab = $el.dataset.index" :class="{active : currentTab == $el.dataset.index}">decoer</a>
+                </li>
+            </ul>
+            <div class="container mt-3">
+                <!-- encoder -->
+                <div data-index="1" x-show="currentTab === $el.dataset.index" x-data="{currSrc:'HQ9+', currTarget:'ko', content : '', textIndex : -1, pageDataGetter:()=>{}, editor:null }" x-init="currTarget='ko'">
+                    <div class="row my-2" x-effect="
+                        rec = $store.ucisc.targetTypes[currTarget].recommender
+                        rec.ops = $store.ucisc.srcTypes[currSrc].op
+                        pageDataGetter = (c, s, e)=>{
+                            if(!c){
+                                return []
+                            }
+                            return rec.recommend(c, e-s , s)
+                        }
+                    ">
+                        <div class="col-6">
+                            <select class="form-select" x-model="currSrc">
+                                <template x-for="(option, val) in $store.ucisc.srcTypes">
+                                    <option :value="val" x-text="option.name" :selected="val == currSrc"></option>
+                                </template>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <select class="form-select" x-model="currTarget">
+                                <template x-for="(option, val) in $store.ucisc.targetTypes">
+                                    <option :value="val" x-text="option.name" :selected="val == currTarget"></option>
+                                </template>
+                            </select>
+                        </div>
+                    </div>
+                    <div                         
+                    x-model="content"
+                    @selectionchange="(t)=>{textIndex=t.detail.index}"
+                    x-init="  
+                            quill = new Quill($el, {
+                                theme : 'snow',
+                                modules: {
+                                    toolbar: false,
+                                },
+                            });
+                            const getSelection = ()=>{
+                                let s = quill.getSelection();
+                                if(!s){
+                                    s = {
+                                        index : -1,
+                                        length : 0,
+                                    }
+                                }
+                                return s
+                            }
+                            quill.on('editor-change', (eventName) => {
+                                if (eventName === 'text-change') {
+                                    $dispatch('input', quill.getText());
+                                }else{
+                                    $dispatch('selectionchange', getSelection());                                    
+                                }
+                            });      
+                            $watch('content', (t)=>{ 
+                                let s = getSelection();
+                                quill.setText(t);
+                                quill.setSelection(s.index,0);
+                            })
+                            editor = quill;
+                        "
+                        style="height: 35vh"
+                    ></div>
+
+                    <div x-data="pagination()"
+                    x-resize="setItemsByWidth( $width )"
+                    >
+                        <div class="mb-3" x-effect="
+                            if(textIndex == -1 ){return}                         
+                            datagetter=pageDataGetter
+                            c = content[textIndex-1];
+                            reData(currpage)                        
+                        "
+                        x-init="
+                            $watch('textIndex', ()=>{
+                                currpage = 1;
+                            })
+                        "
+                        >
+                            <template x-for="val in pagedata">
+                                <button class="btn border m-1 " x-text="val" @click="
+                                if(textIndex == -1){
+                                    return
+                                }
+                                if(textIndex > 0){
+                                    content=content.replaceAt(textIndex-1, val);
+                                }                                                     
+                                ;Alpine.raw(editor).focus();
+                                "></button>
+                            </template>
+                        </div>
+                        <nav >
+                            <div class="container text-center">
+                                <div>
+                                    <button @click="deltaPage(-1);Alpine.raw(editor).focus();" class="btn btn-primary">prev</button>
+                                    <span x-text="currpage"></span>
+                                    <button @click="deltaPage(1);Alpine.raw(editor).focus();" class="btn btn-primary">next</button>    
+                                </div>
+                            </div>
+                        </nav>
+                    </div>
+
+                </div>
+                <!-- decoder -->
+                <div data-index="2" x-show="currentTab === $el.dataset.index"
+                x-data="{currSrc:'HQ9+', content : '' }"
+                 x-init="currTarget='ko'">
+                    <div>                        
+                        <div class="col-6 my-3">
+                            <select class="form-select" x-model="currSrc">
+                                <template x-for="(option, val) in $store.ucisc.srcTypes">
+                                    <option :value="val" x-text="option.name" :selected="val == currSrc"></option>
+                                </template>
+                            </select>
+                        </div>
+                        <textarea class="my-3 form-control" rows="5" x-model="content"></textarea>
+                        <textarea class="my-3 form-control"  x-data="{ decoded:'' }" x-text="decoded" style="field-sizing: content; resize: none;" readonly x-effect="
+                            decoder = $store.ucisc.srcTypes[currSrc].decoder
+                            decoded = decoder.decode( content )
+                        " >
+                        </textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+   
+    <script>    
+        
+        document.addEventListener("alpine:init",()=>{              
+            var targetTypes = {
+                    "ko" : { name : "한글",
+                        recommender : (()=>{
+                            let r = new ucisc.UciscRecommender()
+                            r.addRecommendRangeN(0xac00, 0xd7af);
+                            r.addRecommendRangeN(0xa960, 0xa97f);
+                            r.addRecommendRangeN(0xd7b0, 0xd7ff);
+                            r.addRecommendRangeN(0x1100, 0x11FF);
+                            r.addRecommendRangeN(0x3130, 0x318f);
+                            return r
+                        })(),
+                    },
+                    "en" : {
+                        name : "영어",
+                        recommender : (()=>{
+                            let r = new ucisc.UciscRecommender()
+                            r.addRecommendRangeN(0x0061, 0x007A);
+                            r.addRecommendRangeN(0x0041, 0x005A);
+                            return r
+                        })(),
+                    },
+                    "blank" : {
+                        name : "공백",
+                        recommender : (()=>{
+                            let r = new ucisc.UciscRecommender()                            
+                            r.addRecommendList( 
+                                [0x0020,0x00A0,0x2000,0x2001,0x2002,0x2003,0x2004,0x2005,0x2006,0x2007,0x2008,0x2009,0x200A,0x2028,0x205F,0x3000,'\r','\n']
+                                .map(x=>String.fromCharCode(x)) 
+                                );   
+                            return r                         
+                        })(),
+                    },
+                }
+                 
+            var srcTypes = {
+                    "HQ9+" : {
+                        name : "HQ9+", 
+                        op : "HQ9+".split(),         
+                        decoderBuilder : (d)=>{
+
+                        },
+                    },   
+                    "whitespace+" : {
+                        name : "whitespace", 
+                        op : " \t\n".split(""),         
+                        decoderBuilder : (d)=>{
+
+                        },
+                    },   
+                    "jsf" : { 
+                        name : "JS F***", 
+                        op : "+!()[]".split(''),        
+                        decoderBuilder : (d)=>{
+
+                        },
+                    },       
+                    "bf" : {
+                        name : "Brain F***", 
+                        op : "><+-.[]".split(''),         
+                        decoderBuilder : (d)=>{
+
+                        },
+                    },      
+                };
+            for (const key in srcTypes) {
+                let e = srcTypes[key]
+                let dec = new ucisc.UciscDecoder()
+                dec.setOpList(e.op)
+                e.decoderBuilder(dec)
+                srcTypes[key].decoder = dec
+            }            
+                
+            String.prototype.replaceAt = function(index, replacement) {
+                if (index >= this.length) {
+                    return this.valueOf();
+                }        
+                return this.substring(0, index) + replacement + this.substring(index + 1);
+            }
+            
+            Alpine.store( "ucisc" , {
+                srcTypes,
+                targetTypes,
+            })
+            Alpine.data( "pagination", ()=> ({
+                pagedata : [] ,
+                currpage:1 ,          
+                itemsPerPage : 10,    
+                lineLength : 6,    
+                c: '',
+                setItemsByWidth(width){       
+                    let windowHeight = window.innerHeight
+                        || document.documentElement.clientHeight
+                        || document.body.clientHeight;     
+                    orgIdx = this.itemsPerPage * this.currpage
+                    const buttonSize = 50;
+                    let lineSize = Math.floor( width / buttonSize )            
+                    this.lineLength = Math.floor( (windowHeight * 0.3) / buttonSize )
+                    console.info(this.lineLength)
+                    this.itemsPerPage = lineSize * this.lineLength
+                    newPage = Math.floor( orgIdx / this.itemsPerPage )
+                    if(newPage < 1 || Number.isNaN(newPage)){
+                        this.currpage = 1
+                    }else{
+                        this.currpage = newPage
+                    }
+                },
+                datagetter(){[]},
+                reData(page){
+                    let data = this.datagetter( this.c,  (page-1)*this.itemsPerPage, page*this.itemsPerPage)
+                    if( !data || data.length == 0){
+                        this.pagedata = []
+                        return false
+                    }
+                    this.pagedata = data
+                    return true
+                },
+                deltaPage(delta){
+                    let newPage = this.currpage + delta
+                    if( newPage < 1 ){
+                        return
+                    }
+                    if( this.reData(newPage) ){
+                        this.currpage = newPage
+                    }
+                },
+            }))
+        })
+        function jsfRunner(s){ let dec = new ucisc.UciscDecoder(); dec.setOpList("+!()[]".split('')); return eval(dec.decode(s)) };
+        function whiteRunner(s){ let dec = new ucisc.UciscDecoder(); dec.setOpList(" \t\n".split("")); return whitespace(dec.decode(s),'') };
+    </script>
+</body>
+</html>
